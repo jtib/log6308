@@ -1,3 +1,14 @@
+############################
+## LOG 6308 - TP 2
+## Tibayrenc Juliette - Rubenach Théo
+## matricules 1800292 - 1800314
+##########################"#
+
+
+
+###################
+##Question 1
+
 rm(list = ls())
 library(Matrix)
 
