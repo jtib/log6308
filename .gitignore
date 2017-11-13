@@ -1,3 +1,4 @@
 *.pdf
-R/
 .ipynb_checkpoints/
+R/
+proj_venv/
