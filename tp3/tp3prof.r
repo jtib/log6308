@@ -14,6 +14,7 @@ m <- as.matrix(m)
 ## m est u.data
 m.na <- m
 m.na[m==0] <- NA
+m.na2 <- m.na
 
 ############################################################################### Votes au hasard
 m.hasard <- m.na
@@ -46,60 +47,100 @@ mae(m.expect, m.na)
 # Normalisation
 
 #normalisation telle que réalisée dans la partie "expérience pratique" (qui donne le graphe qu'on doit reproduire)
-votes.utilisateurs.moyen <- rowMeans(m.na, na.rm=T)
-`%-=%` = function(e1,e2) eval.parent(substitute(e1 <- e1 - e2))
-votes.items.moyen <- colMeans(m.na, na.rm=T)
-indx <- is.na(t(m.na))
-m.filled <- t(m.na)
-m.filled[indx] <- votes.items.moyen[col(m.filled)][indx]
-m.filled <- t(m.filled)
-m.filled[,1:ncol(m)] %-=% votes.utilisateurs.moyen
-dim(m.filled)
-# SVD
+#made by juju
+fillingPratique <- function(m.na){
+  votes.utilisateurs.moyen <- rowMeans(m.na, na.rm=T)
+  `%-=%` = function(e1,e2) eval.parent(substitute(e1 <- e1 - e2))
+  votes.items.moyen <- colMeans(m.na, na.rm=T)
+  indx <- is.na(t(m.na))
+  m.filled <- t(m.na)
+  m.filled[indx] <- votes.items.moyen[col(m.filled)][indx]
+  m.filled <- t(m.filled)
+  m.filled[,1:ncol(m)] %-=% votes.utilisateurs.moyen
+  dim(m.filled)
+  return(m.filled)
+}
 
 
 
 #normalisation telle que réalisées dans l'article dans la partie théorique (partie 3)
-m.filled <- m.na
-m.filled[is.na(m.filled)] <- 0
-m.filled <- m.filled - item.mean
+#made by theo
+fillingTheorique <- function(m.na){
+  m.filled.th <- m.na
+  m.filled.th[is.na(m.filled.th)] <- 0
+  m.filled.th <- m.filled.th - item.mean
+  return(m.filled.th)
+}
 
+
+#split en test et train set. 
+#on renvoie le training set et la matrice bool�enne des indices chang�s 
+#(pour pouvoir apr�s calculer la MAE seulement sur les valeurs chang�es)
+split <- function(m, ratio){
+  i.observed <- which(m > 0)
+  i.hasard <- sample(i.observed, length(i.observed))
+  length(i.hasard)
+  fold.size <- round(length(i.hasard) * ratio)
+  i.false <- rep(FALSE, length(m))
+  ## Index booléen pour les cellules de test et d'entraînement
+  i.test.b <- i.false## Les cellules indexées du replis correspondant sont fixées à TRUE pour le test...
+  i.test.b[ i.hasard[1:  fold.size]] <- TRUE## ...et à FALSE pour l'entraînement
+  i.train.b <-  !i.test.b
+  m.na.train <- m
+  m.na.train[i.test.b] <- NA  # on enlève les données de test pour l'entraînement
+  return(list(m.na.train, i.test.b))
+}
+
+#fonctino réalisant la prédiction des votes pour svd avec un certain nombres de dimensions.
+predsvd <- function(nbdim,d,u,v, votes.items.moyen){
+  d.reduced <- d[1:nbdim]
+  d.squared <- diag(sqrt(d.reduced))
+  diag(d.squared)
+  usk <- u[,1:nbdim] %*% d.squared
+  vsk <- d.squared %*% t(v[,1:nbdim])
+  
+  #gagne du temps pour l'estimation du vote
+  m.reconstruit <- usk %*% vsk
+  
+  prediction <- function(user,item,votes.items.moyen) {
+    if (is.na(m.na[user,item]))
+      res <- NA
+    else {
+      res <- votes.items.moyen[user,item] +  m.reconstruit[user,item]
+    }
+    return(res)
+  }
+  test <- sapply(1:943, function(i){#if (i%% 50 == 0) {print(i)};
+    
+    sapply(1:1682, function(j) prediction(i,j, votes.items.moyen))})
+  
+  return(t(test))
+}
+
+#wrapper qui 1) d�compose en svd et 2) fait les calculs de pr�diction:
+predVotes <- function(mat,nbdim,votes.items.moyen){
+  svd <- svd(mat)
+  return(predsvd(nbdim,svd$d,svd$u,svd$v,votes.items.moyen))
+}
+
+dd <- split(m.na,0.1)
+testIndices <- dd[[2]]
+
+
+m.filled <- fillingPratique(dd[[1]])
+m.filled.th <- fillingTheorique(dd[[1]])
+test <- predVotes(m.filled.th,93, item.mean)
+mae(m.na[testIndices] , test[testIndices])
 
 m.svd <- svd(m.filled)
 d <- m.svd$d
 u <- m.svd$u
 v <- m.svd$v
 
-
-#fonctino réalisant la prédiction des votes pour svd avec un certain nombres de dimensions.
-predSvd <- function(nbdim,d,u,v){
-  
-  
-d.reduced <- d[1:nbdim]
-d.squared <- diag(sqrt(d.reduced))
-diag(d.squared)
-usk <- u[,1:nbdim] %*% d.squared
-vsk <- d.squared %*% t(v[,1:nbdim])
-
-
-m.reconstruit <- usk %*% vsk
-
-
-prediction <- function(user,item) {
-  if (is.na(m.na[user,item]))
-    res <- NA
-  else {
-    res <- votes.items.moyen[item] +  m.reconstruit[user,item]
-  }
-  return(res)
-}
-test <- sapply(1:943, function(i){#if (i%% 50 == 0) {print(i)};
-                                  
-                                  sapply(1:1682, function(j) prediction(i,j))})
-
-return(t(test))
-
-}
+m.svd2 <- svd(m.filled.th)
+d2 <- m.svd2$d
+u2 <- m.svd2$u
+v2 <- m.svd2$v
 
 #corner(t(m.na))
 #corner(t(m.filled))
@@ -109,20 +150,20 @@ return(t(test))
 #En réalisant les tests avec un nombre de dimensions 
 #avec la version de m.filled telle qu'indiqué dans la partie théorique, on obtient une erreur nulle pour nbdim = 943. 
 #avec la version de m.filled que tu avais faite (qu correspond au truc expérimental), on obtient une MAE de 0.48 en nbdim = 943.
-mae(m.na,maesvd(2))
-mae(m.na,maesvd(940))
-mae(m.na,maesvd(10))
-mae(m.na,maesvd(14))
-mae(m.na,maesvd(700))
+mae(m.na,predsvd(2,d,u,v))
+mae(m.na,predsvd(10,d,u,v))
+mae(m.na,predsvd(14,d,u,v))
+mae(m.na,predsvd(700,d,u,v))
+mae(m.na,predsvd(940,d,u,v))
 
 
+mae(m.na,predsvd(2,d2,u2,v2))
+mae(m.na,predsvd(10,d2,u2,v2))
+mae(m.na,predsvd(14,d2,u2,v2))
+mae(m.na,predsvd(700,d2,u2,v2))
+mae(m.na,predsvd(940,d2,u2,v2))
 
 
-split <- function(mat, ratio){
-  N <- nrow(mat)
-  train.nb <- round(ratio*N)
-  
-}
 
 
 ############################################################################### Avec validation croisée basée sur 10 replis (10 folds).
@@ -153,7 +194,7 @@ hist(votes.films.moyens)## votes moyens des utilisateurs de test
 votes.utilisateurs.moyen <- rowMeans(m.na.train, na.rm=T)## pour faire changement, utilisons la moyenne arithmétique
 mean(votes.utilisateurs.moyen)          # véfication si ajustement nécessaire (ici ce ne l'est pas et on continue sans)
 hist(votes.utilisateurs.moyen)
-votes.attendus <- outer(votes.utilisateurs.moyen, votes.films.moyen, FUN='+') / 2## Histogramme des erreurs addbyTHEO: il faut remplacer '+' par une fonction qui réalise la prédiction des votes. Cependant je ne comprends pas pk on file les moyennes en entrée....
+votes.attendus <- outer(votes.utilisateurs.moyen, votes.films.moyen, FUN='+') / 2## Histogramme des erreurs Ici �a trace l'histogramme des erreurs pour la baseline (l'approche user.mean+item.mean/2)
 hist(votes.attendus[i.test.b] - m[i.test.b])## Erreur absolue moyenne
 mae(votes.attendus[i.test.b], m[i.test.b])
 mean(abs(votes.attendus[i.test.b] - m[i.test.b]), na.rm=T)## Racine carrée de erreur quadratique moyenne
