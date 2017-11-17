@@ -1,0 +1,3 @@
+* sans cross-validation, l'erreur ne fait que descendre (ou monter, selon ce avec quoi on la compare). C'est tout l'intérêt de la CV
+* comparer avec matrice d'origine pour avoir une erreur qui descend quand le nombre de dimensions augmente.
+* première vap = les zéros, en général (quand on a une matrice d'origine sparse)
