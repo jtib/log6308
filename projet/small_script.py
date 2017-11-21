@@ -19,5 +19,8 @@ for (k,v) in content:
 w = max([len(x) for x in dic.items()])
 
 # Model (inc. training (CBOW))
-model = gensim.models.Word2Vec(dic, window=w, min_count=1, size=50)
+vec = []
+for (k,v) in dic.items():
+    vec.append([k]+v)
+model = gensim.models.Word2Vec(vec, window=w, min_count=1, size=100, batch_words=1000)
 
