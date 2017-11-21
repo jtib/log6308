@@ -131,6 +131,7 @@ m.filled <- fillingPratique(dd[[1]])
 m.filled.th <- fillingTheorique(dd[[1]])
 test <- predVotes(m.filled.th,93, item.mean)
 mae(m.na[testIndices] , test[testIndices])
+mae(m.na, test)
 
 m.svd <- svd(m.filled)
 d <- m.svd$d
