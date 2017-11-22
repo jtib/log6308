@@ -29,21 +29,20 @@ for (k,v) in content:
 
 vec = []
 for (key,val) in dic.items():
-    vec.append(val)
-
+    vec.append(LabeledSentence(words=val, tags=['u'+key]))
 
 # Window size
 w = max([len(x) for x in dic.items()])
 
 # Model (inc. training (CBOW))
-model = gensim.models.Word2Vec(vec, window=w, min_count=1, size=16, batch_words=1000)
+model = gensim.models.Doc2Vec(vec, window=w, min_count=1, size=16, dbow_words=1)
 
 # Locations
-# Some places are never visited --> don't appear in the vocabulary
-#locs = [model.wv[l] for l in locations]
+# Some places are never visited --> don't appear in the vocabulary, so we take directly what's been counted
+locations = model.wv.syn0
 
 # Users
-users = [model.wv[u] for u in vec]
+users = [model.docvecs[u.tags[0]] for u in vec]
 
 # Test (article)
 locs_test = ['0', '1', '2', '3', '4', '5', '6', '7']
@@ -61,4 +60,4 @@ for j,txt in enumerate(locs_test):
 ax.scatter(*zip(*users_test), marker='+')
 for i,txt in enumerate(us):
     ax.annotate(txt, (x[i],y[i]))
-plt.show()
+#plt.show()
