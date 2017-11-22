@@ -45,5 +45,8 @@ w = max([len(x) for x in vec])
 model = gensim.models.Word2Vec(vec, window=w, min_count=1, size=100, batch_words=1000)
 word_vectors = model.wv
 del model
- 
+
+#les 503 premiers seraient les users, les 1600 suivants les items ?
+
+
 pass
