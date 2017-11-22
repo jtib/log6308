@@ -1,3 +1,6 @@
+#################
+# Version perso #
+#################
 # Lecture des donn√©es
 rm(list = ls())
 library(Matrix)
@@ -96,7 +99,6 @@ m.filled[, 1:ncol(m)] %-=% votes.utilisateurs.moyen
 m.svd <- svd(m.filled)
 
 
-
 ## Fonction r√©alisant la pr√©diction des votes apr√®s SVD avec un certain nombres de dimensions.
 predsvd <- function(nbdim, d, u, v, votes.items.moyen) {
   d.reduced <- d[1:nbdim]
@@ -175,12 +177,53 @@ mae(m.na[testIndices.pr] , test.pr[testIndices.pr])
 ## Erreur quadratique moyenne
 mse(m.na[testIndices.pr] , test.pr[testIndices.pr])
 
-#Les valeurs semblent ÈlevÈes comparÈes ‡ la baseline.
-#Cepedant la baseline de la question 1 Ètait rÈalisÈe sans sÈparation entre
-#ensemble de test et ensemble d'entraÓnement; le rÈsultat de notre SVD serait certainement meilleur dans ces conditions.
-#On est toutefois bien au dessus des performances du rÈsultat au hasard
+# Les valeurs semblent elevees comparees a la baseline.
+# Cepedant la baseline de la question 1 etait realisee sans separation entre
+# ensemble de test et ensemble d'entrainement; le resultat de notre SVD serait certainement meilleur dans ces conditions.
+# On est toutefois bien au dessus des performances du resultat au hasard.
 
 # Question 5
+
+# Matrices U, S et V
+U <- m.svd$u
+S <- diag(m.svd$d)
+V <- m.svd$v
+# Matrices Sk
+compute.Sk <- function(k){
+    return(diag(m.svd$d[1:k]))
+}
+list.Sk <- list()
+aux1 <- c(2,5:21,25,50,100)
+list.Sk <- lapply(aux1, compute.Sk)
+length(list.Sk)
+
+# Racine carr√©e de chaque Sk
+# Note : diag n'est pas une op√©ration tr√®s efficace.
+list.Sk.roots <- lapply(list.Sk, function(x) diag(sqrt(diag(x))))
+
+# Uk*Sk^1/2 et Sk^1/2*Vk
+list.Uk <- lapply(aux1, function(k) U[,1:k])
+list.Vk <- lapply(aux1, function(k) V[,1:k])
+list.UkSk <- mapply(function(M,N) M%*%N, list.Uk, list.Sk.roots)
+list.SkVk <- mapply(function(M,N) M%*%t(N), list.Sk.roots, list.Vk)
+# UkSkVk'
+list.UkSkVk <- list()
+list.UkSkVk <- mapply(function(M,N) M%*%N, list.UkSk, list.SkVk, SIMPLIFY=F)
+# D√©normalisation
+tmp <- 1:21
+P1 <- lapply(tmp, function(k) {list.UkSkVk[[k]][,1:1682] %+=% votes.utilisateurs.moyen; list.UkSkVk[[k]]})
+err <- lapply(tmp, function(x) mae(m.na[test.indices], P1[[x]][test.indices]))
+plot(aux1, unlist(err))
+
+# Le meilleur nombre de dimensions est le nombre maximum, comme on peut s'y attendre vu que plus on augmente le nombre
+# de dimensions, plus on est proche de la baseline utilis√©e.
+# Ceci n'est cependant pas le meilleur r√©sultat du point de vue de l'int√©r√™t des pr√©dictions.
+
+# Autre interpr√©tation de la question 5 (interpr√©tation initiale) / partie de la question 6 :
+# utilisation d'un ensemble d'entra√Ænement et d'un ensemble de validation.
+# On a alors une cross-validation bas√©e sur un seul repli, les r√©sultats (comme on le verra)
+# varient donc l√©g√®rement selon les runs.
+# La version avec dix replis (mais en fixant la dimension) est pr√©sent√©e plus loin.
 
 ## Fonction pour la pr√©diction
 predict.SVD = function(nb.dim, M) {
@@ -217,20 +260,26 @@ P <- lapply(aux, predict.SVD, M = m.filled.train)
 
 err <- lapply(auxInd, function(x) mae(m.na[test.indices], P[[x]][test.indices]))
 plot(aux, unlist(err))
-#La forme de la courbe est globalement la mÍme que celle donnÈe dans l'article.
-#On note un nombre de dimensions idÈal de 9, qui est un peu plus ÈlevÈ que la valeur de 14 trouvÈe dans l'article,
-#mais qui n'est pas aberrante non plus. La prÈsence de pics (‡ nbDim = 11 par exemple) est cependant curieuse,
-#on s'attendait ‡ une fonction dÈcroissante puis croissante et plutÙt trËs rÈguliËre.
+#La forme de la courbe est globalement la meme que celle donnee dans l'article.
+#On note que le nombre de dimensions id√©al est un peu different de la valeur de 14 trouvee dans l'article,
+#sans etre aberrant non plus. La presence de pics (a nbDim = 11 par exemple) est cependant curieuse,
+#on s'attendait a une fonction decroissante puis croissante et plutot tres reguliere.
 
-#attention, la forme de la courbe dÈpend du rÈsultat de la fonction split et peut parfois
-#Ítre "mauvaise", en prÈsentant des pics brusques pour certaines valeurs. La tendance gÈnÈrale
-#reste cependant (sur plusieurs essais) ‡ une valeur optimale entre 8 et 18 
+#attention, la forme de la courbe d?pend du resultat de la fonction split et peut parfois
+#etre "mauvaise", en presentant des pics brusques pour certaines valeurs. La tendance generale
+#reste cependant (sur plusieurs essais) ? une valeur optimale entre 8 et 18 ; on prendra 13.
 
+# Commentaire additionnel apres echange par courriel :
+# la courbe serait plus lisse avec les moyennes des erreurs sur dix replis.
+# Dans la suite, on prendra 13 dimensions.
 
-# Question 6 et 7 
-#############################################################################
+# Questions 6 (suite) et 7
+## Vu l'interpretation initiale prise pour les questions 5 et 6,
+## le code des questions 6 et 7 est fait ensemble pour ne pas avoir √† refaire deux fois le m√™me traitement
+## (meilleures performances mat√©rielles).
+## A partir du code fourni :
 ## Avec validation crois√©e bas√©e sur 10 replis (10 folds).
-## Le code ne fait qu'un repli. <- non, maintenant il en fait 10
+## Le code fait dix replis.
 ## Le principe consiste premi√®rement √† cr√©er un vecteur de cellules al√©atoires qui couvrent l'ensemble de la matrice.
 ## Ce vecteur est ensuite divis√© en 10 replis (sections).
 ## Pour chaque repli, un index bool√©en est cr√©√© pour les donn√©es de tests et sa n√©gation correspond aux donn√©es d'entra√Ænement.
@@ -253,7 +302,7 @@ err.rmse.svd <- matrix(data = NA, nrow = 10, ncol = 1)
 err.mae.q7 <- matrix(data = NA, nrow = 10, ncol = 1)
 err.rmse.q7 <- matrix(data = NA, nrow = 10, ncol = 1)
 ## 10 replis
-nbDim <- 9
+nbDim <- 13
 for (i in 1:10) {
   i.false <- rep(FALSE, length(m))
   fold.number <- i
@@ -294,14 +343,14 @@ for (i in 1:10) {
   hist(votes.attendus.svd[i.test.b] - m[i.test.b])
   
   #partie utile pour la question 7
-  #donne la corrÈlation entre utilisateurs
+  #donne la corr?lation entre utilisateurs
   user.cor = cor(t(m.na.train), use='pairwise.complete.obs', method='pearson')
   user.cor[is.na(user.cor)] <- 0
   #normalisation des poids
   user.cor.norm <- t(t(user.cor)/colSums(user.cor))
   
-  #on a remplacÈ les NA par des 0 pour le calcul de la moyenne et le produit matriciel
-  #calcule la moyenne pondÈrÈe pour chaque item pour chaque utilisateur
+  #on a remplac? les NA par des 0 pour le calcul de la moyenne et le produit matriciel
+  #calcule la moyenne pond?r?e pour chaque item pour chaque utilisateur
   m_pred <- user.cor.norm%*%m.zero
   #gestion des cas limites
   m_pred[m_pred < 1 ] <- 1
@@ -328,10 +377,10 @@ err.rmse.svd
 err.rmse.q7
 
 
-
-#Avec une valeur de 9 pour la svd, on note une mae aux alentours de 1, ce qui est relativement ÈlevÈ comparÈ ‡ la baseline. 
-#On remarque Ègalement que la valeur d'environ 0.8 que nous avions obtenu ‡ la question prÈcÈdente est en rÈalitÈ non reprÈsentative.
-#La diffÈrence pourrait Ègalement venir du prÈtraitement (la maniËre dont on gËre les valeurs manquantes)
+#Avec une valeur de 13 pour la svd, on note une mae aux alentours de 1, ce qui est relativement eleve compare a la baseline. 
+#On remarque egalement que la valeur d'environ 0.8 que nous avions obtenu a la question precedente (5, interpr√©tation initiale)
+# est en realite non representative.
+#La difference pourrait egalement venir du pretraitement (la maniere dont on gere les valeurs manquantes).
 
 
 
