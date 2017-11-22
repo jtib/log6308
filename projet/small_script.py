@@ -1,4 +1,5 @@
 import gensim
+from gensim.models.doc2vec import LabeledSentence
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -47,17 +48,17 @@ users = [model.wv[u] for u in vec]
 # Test (article)
 locs_test = ['0', '1', '2', '3', '4', '5', '6', '7']
 us = ['u0', 'u1', 'u2']
-vec_test = [['0', '1', '2', '3'], ['0', '4', '2', '3', '5', '6'], ['3', '7', '5', '6']]
-model_test = gensim.models.Word2Vec(vec_test, window=6, min_count=1, size=2)
-users_test = [sum(model_test.wv[u]) for u in vec_test]
+vec_test = [LabeledSentence(words=['0', '1', '2', '3'], tags=['u0']), LabeledSentence(words=['0', '4', '2', '3', '5', '6'], tags=['u1']), LabeledSentence(words=['3', '7', '5', '6'], tags=['u2'])]
+model_test = gensim.models.Doc2Vec(vec_test, window=6, min_count=1, size=2, dbow_words=1)
+users_test = [model_test.docvecs[u.tags[0]] for u in vec_test]
 loca_test = [model_test.wv[l] for l in locs_test]
-x, y = zip(*users)
+x, y = zip(*users_test)
 z, t = zip(*loca_test)
 fig, ax = plt.subplots()
 ax.scatter(*zip(*loca_test))
 for j,txt in enumerate(locs_test):
     ax.annotate(txt, (z[j],t[j]))
-ax.scatter(*zip(*users), marker='+')
+ax.scatter(*zip(*users_test), marker='+')
 for i,txt in enumerate(us):
     ax.annotate(txt, (x[i],y[i]))
 plt.show()
