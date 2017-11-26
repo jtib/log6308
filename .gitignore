@@ -5,3 +5,4 @@ proj_venv/
 .Rhistory
 w2v/
 *.png
+__pycache__
