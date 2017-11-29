@@ -43,8 +43,8 @@ locations = model.wv.syn0
 
 # Users
 users = [model.docvecs[u.tags[0]] for u in vec]
-
-
+1+1
+pass
 
 
 def test_gensim():
