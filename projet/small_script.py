@@ -19,7 +19,6 @@ items = [x.replace('\t', ' ') for x in items]
 items = [x.split() for x in items]
 
 # formatting
-locations = [it[0] for it in items]
 dic = {}
 for (k,v) in content:
     if k in dic:
@@ -43,8 +42,6 @@ locations = model.wv.syn0
 
 # Users
 users = [model.docvecs[u.tags[0]] for u in vec]
-
-
 
 
 def test_gensim():
