@@ -18,6 +18,17 @@ items = [x.strip() for x in items]
 items = [x.replace('\t', ' ') for x in items]
 items = [x.split() for x in items]
 
+
+#fonction pour récupérer un training et un testing set
+def splitSet(content, ratio):
+    totalsize = len(content)
+    testSize = int(ratio*totalsize)
+    trainSize = totalsize - testSize
+    trainSet = np.random.choice(content,trainSize)
+    return trainSet
+
+
+
 # formatting
 dic = {}
 for (k,v) in content:
@@ -25,6 +36,7 @@ for (k,v) in content:
         dic[k].append(v)
     else:
         dic[k] = [v]
+
 
 vec = []
 for (key,val) in dic.items():
