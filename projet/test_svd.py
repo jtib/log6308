@@ -1,11 +1,10 @@
 import numpy as np
 import time
-import pickle
+from itertools import product
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy import sparse
 
 import small_script
-from testknn import *
 
 dic = small_script.dic
 locations = [it[0] for it in small_script.items]
@@ -39,10 +38,26 @@ donnees_16 = np.dot((np.dot(U_16, np.diag(s_16))), V_16)
 # Final matrix
 ## Denormalizing
 C = donnees_16 + u_average
-## Distances (rapide)
-C_sparse = sparse.csr_matrix(C) #TODO: check if useful
-u_distances = cosine_similarity(C_sparse) #between users
-# Approches : KNI, KNN
+# 5 best items (indexes)
+mSVD_pred = (np.argsort(C))[:,:5]
+# Corresponding places
+dSVD_pred = {}
+for i,j in product(range(mSVD_pred.shape[0]), range(mSVD_pred.shape[1])):
+    u = dic_users[i]
+    if u in dSVD_pred:
+        dSVD_pred[u].append(dic_items[mSVD_pred[i][j]])
+    else:
+        dSVD_pred[u] = [dic_items[mSVD_pred[i][j]]]
 
-sentences = np.asarray(small_script.vec)
-tags = sentences[:,-1]
+# Other approach : top n neighbours
+## Distances (cosinus)
+Us = np.dot(U_16, np.diag(np.sqrt(s_16)))
+u_sim = cosine_similarity(Us) #between users
+# 5 closest neighbors (users)
+neighbours = np.argsort(u_sim)[:,:5]
+# 10 places in which they've checked in most frequently
+#ranking = {}
+#for u,u_neigh in product(range(neighbours.shape[0]), range(neighbours.shape[1])):
+
+# Display
+

@@ -126,7 +126,3 @@ sentences = np.asarray(small_script.vec)
 tags = sentences[:,-1]
 testScipy = tags[t2[0,1:]]
 #les résultats sont bien les mêmes.
-
-
-
-print("hello")
