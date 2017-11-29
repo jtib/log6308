@@ -44,6 +44,8 @@ locations = model.wv.syn0
 users = [model.docvecs[u.tags[0]] for u in vec]
 
 
+
+
 def test_gensim():
     # Test (article)
     locs_test = ['0', '1', '2', '3', '4', '5', '6', '7']
