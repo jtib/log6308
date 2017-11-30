@@ -39,3 +39,12 @@ model = gensim.models.Doc2Vec(vec, window=w, min_count=4, size=16, dbow_words=0)
 # Locations, users
 locations = [model.docvecs[l.tags[0]] for l in cuve]
 users = [model.docvecs[u.tags[0]] for u in vecu]
+
+# Nearest neighbours
+from testknn import userCosine, userLocCosine2, KNIapproach, KNNapproach, KIUapproach
+
+userDistances = userCosine(users)
+usersLocDistances = userLocCosine2(users, locations)
+dKNI = KNIapproach(usersLocDistances, 5)
+dKNN = KNNapproach(usersLocDistances, userDistances, 5, 10)
+dKIU = KIUapproach(np.asarray(users), np.asarray(locations), userDistances, 5, 8)
