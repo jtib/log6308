@@ -5,11 +5,8 @@ import numpy as np
 import scipy
 import time
 
-
+import metrics
 import small_script
-
-users = small_script.users
-locations = small_script.locations
 
 #decorateur pour avoir les performances en temps
 def timeit(method):
@@ -54,8 +51,8 @@ def userLocCosine2(users,locations):
 @timeit
 def KNIapproach(distanceMatrix,recommendationSize):
     s = np.shape(distanceMatrix)
-    resInd = np.zeros((s[1],recommendationSize),dtype='int32')
-    resVas = np.zeros((s[1],recommendationSize))
+    resInd = np.zeros((s[0],recommendationSize),dtype='int32')
+    resVas = np.zeros((s[0],recommendationSize))
     for u in range(s[0]):
         ind = np.argsort(distanceMatrix[u,:])[:recommendationSize]
         values = distanceMatrix[u,ind]
@@ -98,6 +95,33 @@ def KIUapproach(usersMatrix, locs, userDistanceMatrix, neighborhoodSize,recommen
     return KNIapproach(newDistanceMatrix,recommendationSize)
 
 
+def getRandomRecommendation(nbUsers,nbLocations, recommandationsSize):
+    res = np.zeros((nbUsers,recommandationsSize))
+    for i in range(nbUsers):
+        res[i,:]=np.random.choice(nbLocations,recommandationsSize)
+    return res
+
+
+content,items = small_script.load_data()
+
+t1,t2 = small_script.fixedSplitSet(content,0.1)
+r = small_script.ratioColdStart(t1,t2)
+t1,t2 = small_script.fixedSplitSet(content,0.2)
+r2 = small_script.ratioColdStart(t1,t2)
+t1,t2 = small_script.fixedSplitSet(content,0.3)
+r3 = small_script.ratioColdStart(t1,t2)
+t1,t2 = small_script.fixedSplitSet(content,0.4)
+r4 = small_script.ratioColdStart(t1,t2)
+t1,t2 = small_script.fixedSplitSet(content,0.5)
+r5 = small_script.ratioColdStart(t1,t2)
+#On constate que même en prenant comme ensemble de test la moitié de nos données, moins de 5% des utilisateurs se retrouvent
+#sans check-in dans l'ensemble d'entraînement. Le problème de 'cold start' sera donc marginal pour les tests.
+
+
+trainSet,testSet = small_script.fixedSplitSet(content,0.5)
+
+model,users,locations,vec = small_script.getDoc2Vec(trainSet,100)
+
 print("computing user distances...")
 userDistances = userCosine(users)
 #for i in range(np.shape(userDistances)[0]):
@@ -108,21 +132,29 @@ usersLocDistances = userLocCosine2(users,locations)
 
 #KNI approach
 print("computing KNI approach...")
-dKNI = KNIapproach(usersLocDistances,5)
+dKNI = KNIapproach(usersLocDistances,10)
 
 #KNN approach
 print("computing KNN approach")
-dKNN = KNNapproach(usersLocDistances,userDistances,5,10)
+dKNN = KNNapproach(usersLocDistances,userDistances,100,10)
 
 #KIU approach
 print("computing KIU approach")
-dKIU = KIUapproach(np.asarray(users),locations,userDistances,5,8)
+dKIU = KIUapproach(np.asarray(users),locations,userDistances,100,10)
 
+tags = metrics.getIndexFromTags(vec)
+locTags = metrics.getLocIndexFromTags(model.wv.index2word)
+t = np.unique(dKNI[0][0,:])
+precisionAt10KNI = metrics.precisionAtK(dKNI[0],testSet,tags,locTags)
+precisionAt10KNN = metrics.precisionAtK(dKNN[0],testSet,tags,locTags)
+precisionAt10KIU = metrics.precisionAtK(dKIU[0],testSet,tags,locTags)
+randomRes = getRandomRecommendation(2060,2804,10)
+precisionAt10Random = metrics.precisionAtK(randomRes,testSet,tags,locTags)
 
 #comparaison avec gensim functions
-testGensim = small_script.model.docvecs.most_similar(positive=[small_script.vec[0].tags[0]])
+testGensim = model.docvecs.most_similar(positive=[vec[0].tags[0]])
 t2 = KNIapproach(userDistances,11)[0]
-sentences = np.asarray(small_script.vec)
+sentences = np.asarray(vec)
 tags = sentences[:,-1]
 testScipy = tags[t2[0,1:]]
 #les résultats sont bien les mêmes.
