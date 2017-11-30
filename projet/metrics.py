@@ -41,6 +41,18 @@ def precisionAtK(predictionsAtK, testSet,tags,locTags):
     return (correctGuess/s[0]/s[1])
 
 
+def precisionAtKSVD(predictionsAtK, testSet):
+    correctGuess = 0
+    for (u,l) in testSet:
+        #try is here to prevent users that are only is test set to crash the algorithm
+        #precision is set to 0 for them
+        try:
+            if l in predictionsAtK[u]:
+                correctGuess += 1
+        except:
+            pass
+    return (correctGuess/sum(map(len, predictionsAtK.values())))
+
 def hitRate(predictionAtK,testSet,tags):
     s = np.shape(predictionsAtK)
     correctGuess = np.zeros((s[0]))

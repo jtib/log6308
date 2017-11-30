@@ -5,6 +5,7 @@ import time
 
 import metrics
 import small_script
+import test_svd
 
 #decorateur pour avoir les performances en temps
 def timeit(method):
@@ -118,7 +119,7 @@ r5 = small_script.ratioColdStart(t1,t2)
 
 trainSet,testSet = small_script.fixedSplitSet(content,0.5)
 
-model,users,locations,vec = small_script.getDoc2Vec(trainSet,100)
+model,users,locations,vec,dic = small_script.getDoc2Vec(trainSet,100)
 
 print("computing user distances...")
 userDistances = userCosine(users)
@@ -140,12 +141,17 @@ dKNN = KNNapproach(usersLocDistances,userDistances,100,10)
 print("computing KIU approach")
 dKIU = KIUapproach(np.asarray(users),locations,userDistances,100,10)
 
+
+print("computing SVD approach")
+dSVD = test_svd.svdPrediction(dic,items,20,10)
+
 tags = metrics.getIndexFromTags(vec)
 locTags = metrics.getLocIndexFromTags(model.wv.index2word)
 t = np.unique(dKNI[0][0,:])
 precisionAt10KNI = metrics.precisionAtK(dKNI[0],testSet,tags,locTags)
 precisionAt10KNN = metrics.precisionAtK(dKNN[0],testSet,tags,locTags)
 precisionAt10KIU = metrics.precisionAtK(dKIU[0],testSet,tags,locTags)
+precisionAt10SVD = metrics.precisionAtKSVD(dSVD,testSet)
 randomRes = getRandomRecommendation(2060,2804,10)
 precisionAt10Random = metrics.precisionAtK(randomRes,testSet,tags,locTags)
 
