@@ -17,6 +17,7 @@ content = [x.split() for x in content]
 items = [x.strip() for x in items]
 items = [x.replace('\t', ' ') for x in items]
 items = [x.split() for x in items]
+items = [[x[0]] + (x[1].split(sep=',') if len(x)>1 else []) for x in items]
 
 
 #fonction pour récupérer un training et un testing set
