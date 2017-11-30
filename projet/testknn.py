@@ -1,6 +1,4 @@
 import gensim
-import pickle
-import sklearn.neighbors
 import numpy as np
 import scipy
 import time
