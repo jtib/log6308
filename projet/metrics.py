@@ -2,9 +2,18 @@ import numpy as np
 
 
 
+
+
 def getTags(vec):
     l = [u.tags[0] for u in vec]
     return l
+
+
+def getLocIndexFromTags(tags):
+    d = {}
+    for i in range(len(tags)):
+        d[tags[i]] = i
+    return d
 
 def getIndexFromTags(vec):
     d = {}
@@ -17,7 +26,7 @@ def getIndexFromTags(vec):
 #précision au rang k
 #On ne calcule cette précision que pour les utilsateurs ayant au moins un check in dans le test set.
 #tags is a dic, containing (tag, index) as entries for each user
-def precisionAtK(predictionsAtK, testSet,tags):
+def precisionAtK(predictionsAtK, testSet,tags,locTags):
     s = np.shape(predictionsAtK)
     correctGuess = 0
     for (u,l) in testSet:
@@ -25,7 +34,7 @@ def precisionAtK(predictionsAtK, testSet,tags):
         #precision is set to 0 for them
         try:
             index = tags[u]
-            if l in predictionsAtK[index,:]:
+            if locTags[l] in predictionsAtK[index,:]:
                 correctGuess += 1
         except:
             pass
