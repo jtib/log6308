@@ -1,8 +1,8 @@
 import numpy as np
 import time
-from itertools import product
+from itertools import product, chain
+from collections import Counter
 from sklearn.metrics.pairwise import cosine_similarity
-from scipy import sparse
 
 import small_script
 
@@ -55,9 +55,9 @@ Us = np.dot(U_16, np.diag(np.sqrt(s_16)))
 u_sim = cosine_similarity(Us) #between users
 # 5 closest neighbors (users)
 neighbours = np.argsort(u_sim)[:,:5]
-# 10 places in which they've checked in most frequently
-#ranking = {}
-#for u,u_neigh in product(range(neighbours.shape[0]), range(neighbours.shape[1])):
-
-# Display
-
+# 5 places in which they've (collectively) checked in most frequently
+# for 1 index in one row:
+names = [[dic_users[ne] for ne in users] for users in neighbours]
+locations = [list(chain.from_iterable([dic[uname] for uname in n])) for n in names]
+rec = [Counter(loc).most_common(5) for loc in locations]
+dic_rec = {dic_users[i]:rec[i] for i in range(len(rec))}

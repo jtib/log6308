@@ -7,3 +7,5 @@ proj_venv/
 w2v/
 *.png
 __pycache__
+*.html
+*_fichiers/
