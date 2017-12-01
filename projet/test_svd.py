@@ -77,8 +77,8 @@ def svdPrediction(dic,items,nbDim,nbRecommandation):
 ## Distances (cosinus)
 @timeit
 def topNneighborsSvdPrediction(dic,items,nbDim,nbRecommandation):
-    dic = small_script.dic
-    locations = [it[0] for it in small_script.items]
+
+    locations = [it[0] for it in items]
     nu = len(dic)
     ni = len(locations)
 
@@ -103,7 +103,7 @@ def topNneighborsSvdPrediction(dic,items,nbDim,nbRecommandation):
     # Using 16 dimensions (same as gensim projection)
     s_16 = s[:nbDim]
     U_16 = U[:,:nbDim]
-    V_16 = V[:16,:nbDim]
+    V_16 = V[:nbDim,:]
     donnees_16 = np.dot((np.dot(U_16, np.diag(s_16))), V_16)
     Us = np.dot(U_16, np.diag(np.sqrt(s_16)))
     u_sim = cosine_similarity(Us) #between users
@@ -115,4 +115,6 @@ def topNneighborsSvdPrediction(dic,items,nbDim,nbRecommandation):
     locations = [list(chain.from_iterable([dic[uname] for uname in n])) for n in names]
     rec = [Counter(loc).most_common(5) for loc in locations]
     dic_rec = {dic_users[i]:rec[i] for i in range(len(rec))}
-    return dic_rec
+
+    res = {k: v[0] for k,v in dic_rec.items()}
+    return res

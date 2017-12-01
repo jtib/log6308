@@ -6,6 +6,7 @@ import time
 import metrics
 import small_script
 import test_svd
+import matplotlib.pyplot as plt
 
 #decorateur pour avoir les performances en temps
 def timeit(method):
@@ -26,7 +27,10 @@ def timeit(method):
 
 #calcule la similarité entre utilisateurs sur la base du cosinus
 def userCosine(users):
-    return userLocCosine2(users,users)
+    u = userLocCosine2(users,users)
+    for i in range(np.shape(u)[0]):
+        u[i,i] = 10
+    return u
 
 #calcule la similarité entre utilisateurs et locations sur la base du cosinus (à ne pas utiliser : userLocCosine2 est
 #bien plus performant
@@ -101,64 +105,70 @@ def getRandomRecommendation(nbUsers,nbLocations, recommandationsSize):
     return res
 
 
-content,items = small_script.load_data()
+def main():
+    content,items = small_script.load_data()
 
-t1,t2 = small_script.fixedSplitSet(content,0.1)
-r = small_script.ratioColdStart(t1,t2)
-t1,t2 = small_script.fixedSplitSet(content,0.2)
-r2 = small_script.ratioColdStart(t1,t2)
-t1,t2 = small_script.fixedSplitSet(content,0.3)
-r3 = small_script.ratioColdStart(t1,t2)
-t1,t2 = small_script.fixedSplitSet(content,0.4)
-r4 = small_script.ratioColdStart(t1,t2)
-t1,t2 = small_script.fixedSplitSet(content,0.5)
-r5 = small_script.ratioColdStart(t1,t2)
-#On constate que même en prenant comme ensemble de test la moitié de nos données, moins de 5% des utilisateurs se retrouvent
-#sans check-in dans l'ensemble d'entraînement. Le problème de 'cold start' sera donc marginal pour les tests.
-
-
-trainSet,testSet = small_script.fixedSplitSet(content,0.5)
-
-model,users,locations,vec,dic = small_script.getDoc2Vec(trainSet,100)
-
-print("computing user distances...")
-userDistances = userCosine(users)
-#for i in range(np.shape(userDistances)[0]):
-#    userDistances[i,i] = 10
-
-print("computing user/location distances...")
-usersLocDistances = userLocCosine2(users,locations)
-
-#KNI approach
-print("computing KNI approach...")
-dKNI = KNIapproach(usersLocDistances,10)
-
-#KNN approach
-print("computing KNN approach")
-dKNN = KNNapproach(usersLocDistances,userDistances,100,10)
-
-#KIU approach
-print("computing KIU approach")
-dKIU = KIUapproach(np.asarray(users),locations,userDistances,100,10)
+    t1,t2 = small_script.fixedSplitSet(content,0.1)
+    r = small_script.ratioColdStart(t1,t2)
+    t1,t2 = small_script.fixedSplitSet(content,0.2)
+    r2 = small_script.ratioColdStart(t1,t2)
+    t1,t2 = small_script.fixedSplitSet(content,0.3)
+    r3 = small_script.ratioColdStart(t1,t2)
+    t1,t2 = small_script.fixedSplitSet(content,0.4)
+    r4 = small_script.ratioColdStart(t1,t2)
+    t1,t2 = small_script.fixedSplitSet(content,0.5)
+    r5 = small_script.ratioColdStart(t1,t2)
+    #On constate que même en prenant comme ensemble de test la moitié de nos données, moins de 5% des utilisateurs se retrouvent
+    #sans check-in dans l'ensemble d'entraînement. Le problème de 'cold start' sera donc marginal pour les tests.
 
 
-print("computing SVD approach")
-dSVD = test_svd.svdPrediction(dic,items,20,10)
+    trainSet,testSet = small_script.fixedSplitSet(content,0.2)
 
-tags = metrics.getIndexFromTags(vec)
-locTags = metrics.getLocIndexFromTags(model.wv.index2word)
-t = np.unique(dKNI[0][0,:])
-precisionAt10KNI = metrics.precisionAtK(dKNI[0],testSet,tags,locTags)
-precisionAt10KNN = metrics.precisionAtK(dKNN[0],testSet,tags,locTags)
-precisionAt10KIU = metrics.precisionAtK(dKIU[0],testSet,tags,locTags)
-precisionAt10SVD = metrics.precisionAtKSVD(dSVD,testSet)
-randomRes = getRandomRecommendation(2060,2804,10)
-precisionAt10Random = metrics.precisionAtK(randomRes,testSet,tags,locTags)
+    model,users,locations,vec,dic = small_script.getDoc2Vec(trainSet,100)
 
-#comparaison avec gensim functions
-testGensim = model.docvecs.most_similar(positive=[vec[0].tags[0]])
-t2 = KNIapproach(userDistances,11)[0]
-sentences = np.asarray(vec)
-tags = sentences[:,-1]
-testScipy = tags[t2[0,1:]]
-#les résultats sont bien les mêmes.
+    lengths = np.asarray([len(v) for k,v in dic.items()])
+    m=np.mean(lengths)
+    s=np.std(lengths)
+
+    print("computing user distances...")
+    userDistances = userCosine(users)
+    #for i in range(np.shape(userDistances)[0]):
+    #    userDistances[i,i] = 10
+
+    print("computing user/location distances...")
+    usersLocDistances = userLocCosine2(users,locations)
+
+    #KNI approach
+    print("computing KNI approach...")
+    dKNI = KNIapproach(usersLocDistances,10)
+
+    #KNN approach
+    print("computing KNN approach")
+    dKNN = KNNapproach(usersLocDistances,userDistances,30,10)
+
+    #KIU approach
+    print("computing KIU approach")
+    dKIU = KIUapproach(np.asarray(users),locations,userDistances,30,10)
+
+
+    print("computing SVD approach")
+    dSVD = test_svd.svdPrediction(dic,items,20,10)
+    dSVD2 = test_svd.topNneighborsSvdPrediction(dic,items,20,10)
+    tags = metrics.getIndexFromTags(vec)
+    locTags = metrics.getLocIndexFromTags(model.wv.index2word)
+    t = np.unique(dKNI[0][0,:])
+    precisionAt10KNI = metrics.precisionAtK(dKNI[0],testSet,tags,locTags)
+    precisionAt10KNN = metrics.precisionAtK(dKNN[0],testSet,tags,locTags)
+    precisionAt10KIU = metrics.precisionAtK(dKIU[0],testSet,tags,locTags)
+    precisionAt10SVD = metrics.precisionAtKSVD(dSVD,testSet)
+    precisionAt10SVD2 = metrics.precisionAtKSVD(dSVD2,testSet)
+    randomRes = getRandomRecommendation(2060,2804,10)
+    precisionAt10Random = metrics.precisionAtK(randomRes,testSet,tags,locTags)
+
+    #comparaison avec gensim functions
+    testGensim = model.docvecs.most_similar(positive=[vec[0].tags[0]])
+    t2 = KNIapproach(userDistances,11)[0]
+    sentences = np.asarray(vec)
+    tags = sentences[:,-1]
+    testScipy = tags[t2[0,1:]]
+    #les résultats sont bien les mêmes.
