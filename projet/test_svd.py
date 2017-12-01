@@ -108,7 +108,7 @@ def topNneighborsSvdPrediction(dic,items,nbDim,nbRecommandation):
     Us = np.dot(U_16, np.diag(np.sqrt(s_16)))
     u_sim = cosine_similarity(Us) #between users
     # 5 closest neighbors (users)
-    neighbours = np.argsort(u_sim)[:,:5]
+    neighbours = np.argsort(u_sim)[:,:nbRecommandation]
     # 5 places in which they've (collectively) checked in most frequently
     # for 1 index in one row:
     names = [[dic_users[ne] for ne in users] for users in neighbours]
@@ -116,5 +116,5 @@ def topNneighborsSvdPrediction(dic,items,nbDim,nbRecommandation):
     rec = [Counter(loc).most_common(5) for loc in locations]
     dic_rec = {dic_users[i]:rec[i] for i in range(len(rec))}
 
-    res = {k: v[0] for k,v in dic_rec.items()}
+    res = {k:  [int(i[0]) for i in v] for k,v in dic_rec.items()}
     return res

@@ -23,23 +23,6 @@ def load_data(filename = 'dataset_ubicomp2013/dataset_ubicomp2013_checkins.txt',
     return (content, items)
 
 
-
-
-#fonction pour récupérer un training et un testing set random
-def splitSet(content, ratio):
-    totalsize = len(content)
-    testSize = int(ratio*totalsize)
-    trainSize = totalsize - testSize
-    trainSet = np.random.choice(content,trainSize)
-    return trainSet
-
-#return training and test set, in that order.
-def fixedSplitSet(content, ratio):
-    totalsize = len(content)
-    testSize = int(ratio * totalsize)
-    trainSize = totalsize - testSize
-    return (content[:trainSize],content[trainSize:])
-
 #renvoie la proportion de check-in qui ne pourront pas être correctement devinés puisque l'utilisateur n'est présent que dans
 #l'ensemble de test et pas dans celui d'entraînement.
 def ratioColdStart(trainSet,testSet):
@@ -78,6 +61,23 @@ def getDoc2Vec(content,nbDim):
 
 
 
+#fonction pour récupérer un training et un testing set random
+def splitSet(content, ratio):
+    totalsize = len(content)
+    testSize = int(ratio*totalsize)
+    trainSize = totalsize - testSize
+    trainSet = np.random.choice(content,trainSize)
+    return trainSet
+
+#return training and test set, in that order.
+def fixedSplitSet(content, ratio):
+    totalsize = len(content)
+    testSize = int(ratio * totalsize)
+    trainSize = totalsize - testSize
+    return (content[:trainSize],content[trainSize:])
+
+
+
 #test of gensim with toy data
 def test_gensim():
     # Test (article)
@@ -96,4 +96,5 @@ def test_gensim():
     ax.scatter(*zip(*users_test), marker='+')
     for i,txt in enumerate(us):
         ax.annotate(txt, (x[i],y[i]))
-    plt.show()
+
+    plt.draw()

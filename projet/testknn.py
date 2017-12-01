@@ -107,34 +107,12 @@ def getRandomRecommendation(nbUsers,nbLocations, recommandationsSize):
 
 def main():
     content,items = small_script.load_data()
-
-    t1,t2 = small_script.fixedSplitSet(content,0.1)
-    r = small_script.ratioColdStart(t1,t2)
-    t1,t2 = small_script.fixedSplitSet(content,0.2)
-    r2 = small_script.ratioColdStart(t1,t2)
-    t1,t2 = small_script.fixedSplitSet(content,0.3)
-    r3 = small_script.ratioColdStart(t1,t2)
-    t1,t2 = small_script.fixedSplitSet(content,0.4)
-    r4 = small_script.ratioColdStart(t1,t2)
-    t1,t2 = small_script.fixedSplitSet(content,0.5)
-    r5 = small_script.ratioColdStart(t1,t2)
-    #On constate que même en prenant comme ensemble de test la moitié de nos données, moins de 5% des utilisateurs se retrouvent
-    #sans check-in dans l'ensemble d'entraînement. Le problème de 'cold start' sera donc marginal pour les tests.
-
-
     trainSet,testSet = small_script.fixedSplitSet(content,0.2)
 
     model,users,locations,vec,dic = small_script.getDoc2Vec(trainSet,100)
 
-    lengths = np.asarray([len(v) for k,v in dic.items()])
-    m=np.mean(lengths)
-    s=np.std(lengths)
-    med = np.median(lengths)
-
     print("computing user distances...")
     userDistances = userCosine(users)
-    #for i in range(np.shape(userDistances)[0]):
-    #    userDistances[i,i] = 10
 
     print("computing user/location distances...")
     usersLocDistances = userLocCosine2(users,locations)
@@ -173,3 +151,7 @@ def main():
     tags = sentences[:,-1]
     testScipy = tags[t2[0,1:]]
     #les résultats sont bien les mêmes.
+
+
+if __name__ == '__main__':
+    main()
