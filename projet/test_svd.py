@@ -52,13 +52,13 @@ def svdPrediction(dic,items,nbDim,nbRecommandation):
     # Using 16 dimensions (same as gensim projection)
     s_16 = s[:nbDim]
     U_16 = U[:,:nbDim]
-    V_16 = V[:nbDim,:nbDim]
+    V_16 = V[:nbDim,:]
     donnees_16 = np.dot((np.dot(U_16, np.diag(s_16))), V_16)
 
     # Final matrix
     ## Denormalizing
     C = donnees_16 + u_average
-    # 5 best items (indexes)
+    # X best items (indexes)
     mSVD_pred = (np.argsort(C))[:,:nbRecommandation]
     # Corresponding places
     dSVD_pred = {}
