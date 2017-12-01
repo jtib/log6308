@@ -129,6 +129,7 @@ def main():
     lengths = np.asarray([len(v) for k,v in dic.items()])
     m=np.mean(lengths)
     s=np.std(lengths)
+    med = np.median(lengths)
 
     print("computing user distances...")
     userDistances = userCosine(users)
